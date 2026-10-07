@@ -2,7 +2,7 @@
 
 A browser-based planning tool for assessment and development centre projects. Pick what the project includes, and it builds the full delivery plan, a Gantt chart and a client-ready Excel file in seconds.
 
-**Live demo:** `https://<your-username>.github.io/<repo-name>/`
+**Live demo:** `https://shaikspear13.github.io/project-planner/`
 
 ## The problem
 
