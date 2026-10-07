@@ -1,0 +1,564 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="author" content="Moina Shaik">
+<meta name="description" content="Assessment Project Planner: set the scope of an assessment project and get a dependency-driven plan, Gantt chart, compression check and client-ready Excel.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;600;700&family=IBM+Plex+Mono:wght@500&display=swap">
+<title>Assessment Project Planner</title>
+<style>
+/* Layout: app header, a set-up row (project + scope | timeline check), then tabs for Plan, Gantt and Client view. Palette: pine for the delivery team, ochre for the client, grey for joint tasks, red for flags. */
+:root{
+  --bg:#f5f4f1;
+  --surface:#ffffff;
+  --surface2:#f2f6f4;
+  --fg:#1f2a30;
+  --muted:#5e6b70;
+  --line:#d7dcd8;
+  --line2:#e9ece9;
+  --head:#22313a;
+  --head-ink:#ffffff;
+  --band:#3c4a52;
+  --sub:#dde4e0;
+  --teal:#2f6f62;
+  --teal-ink:#ffffff;
+  --teal-t:#eaf3f0;
+  --teal-d:#245a4f;
+  --slate:#b0743c;
+  --slate-t:#f6ece1;
+  --grey:#9aa3ad;
+  --red:#c8102e;
+  --red-t:#fbe3e6;
+  --off:#a0a8ab;
+  --f-body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",Arial,sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#151a1c;
+  --surface:#1d2427;
+  --surface2:#1a2624;
+  --fg:#e8ece9;
+  --muted:#9eaaa6;
+  --line:#33403d;
+  --line2:#283230;
+  --head:#263139;
+  --head-ink:#e8ece9;
+  --band:#36434a;
+  --sub:#2b3633;
+  --teal:#5aa894;
+  --teal-ink:#0b1a16;
+  --teal-t:#1b2c28;
+  --teal-d:#8fd0bf;
+  --slate:#d39a62;
+  --slate-t:#33281d;
+  --grey:#76808a;
+  --red:#ff6b7d;
+  --red-t:#3a1b20;
+  --off:#6c7775; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#151a1c;
+  --surface:#1d2427;
+  --surface2:#1a2624;
+  --fg:#e8ece9;
+  --muted:#9eaaa6;
+  --line:#33403d;
+  --line2:#283230;
+  --head:#263139;
+  --head-ink:#e8ece9;
+  --band:#36434a;
+  --sub:#2b3633;
+  --teal:#5aa894;
+  --teal-ink:#0b1a16;
+  --teal-t:#1b2c28;
+  --teal-d:#8fd0bf;
+  --slate:#d39a62;
+  --slate-t:#33281d;
+  --grey:#76808a;
+  --red:#ff6b7d;
+  --red-t:#3a1b20;
+  --off:#6c7775; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font:15px/1.45 var(--f-body)}
+.app{max-width:1280px;margin:0 auto;padding-inline:16px;padding-block:0 60px}
+header.top{display:flex;flex-wrap:wrap;align-items:center;gap:12px;padding-block:16px 12px}
+header.top h1{font-size:1.35rem;margin:0;letter-spacing:.01em}
+header.top .sub{color:var(--muted);font-size:14px}
+.spacer{flex:1}
+.btn{font:600 14px var(--f-body);border:1px solid var(--teal);background:var(--teal);color:var(--teal-ink);padding:7px 14px;border-radius:6px;cursor:pointer}
+.btn.ghost{background:transparent;color:var(--teal)}
+.btn.warn{border-color:var(--red);color:var(--red);background:transparent}
+.btn:focus-visible,button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:2px solid var(--teal);outline-offset:2px}
+.grid{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:16px}
+@media (max-width:900px){.grid{grid-template-columns:minmax(0,1fr)}}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:16px;min-width:0}
+.card h2{font-size:12px;letter-spacing:.09em;text-transform:uppercase;color:var(--muted);margin:0 0 12px}
+.fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-bottom:14px}
+label.f{display:flex;flex-direction:column;gap:4px;font-size:13px;color:var(--muted);font-weight:600}
+input,select,textarea{font:14px var(--f-body);color:var(--fg);background:var(--surface2);border:1px solid var(--line);border-radius:6px;padding:6px 8px;min-width:0}
+textarea{min-height:64px;font-family:var(--f-mono);font-size:12px;width:100%}
+.scope{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:8px}
+.tog{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 10px;border:1px solid var(--line);border-radius:6px;background:var(--surface)}
+.tog span{font-size:14px}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:6px;overflow:hidden;flex-shrink:0}
+.seg button{border:0;background:transparent;color:var(--muted);font:600 12px var(--f-body);padding:4px 10px;cursor:pointer}
+.seg button+button{border-left:1px solid var(--line)}
+.seg button[aria-pressed="true"]{background:var(--teal);color:var(--teal-ink)}
+.seg.no button[aria-pressed="true"].n{background:var(--grey);color:var(--fg)}
+.tl table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums}
+.tl th,.tl td{padding:7px 8px;border-bottom:1px solid var(--line2);text-align:left}
+.tl th{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+.tl td.n{text-align:right;font-family:var(--f-mono);font-size:13px}
+.verdict{margin-top:12px;padding:10px 12px;border-radius:6px;font-weight:700;background:var(--line2);color:var(--fg)}
+.verdict.bad{background:var(--red-t);color:var(--red)}
+.verdict.good{background:var(--teal-t);color:var(--teal-d)}
+.stats{display:flex;flex-wrap:wrap;gap:8px 24px;margin-top:12px;font-size:14px;color:var(--muted)}
+.stats b{color:var(--fg);font-family:var(--f-mono);font-size:13px}
+.tabs{display:flex;gap:4px;margin:20px 0 0;border-bottom:1px solid var(--line);flex-wrap:wrap}
+.tab{border:0;background:transparent;color:var(--muted);font:700 14px var(--f-body);padding:10px 14px;cursor:pointer;border-bottom:3px solid transparent}
+.tab[aria-selected="true"]{color:var(--fg);border-bottom-color:var(--teal)}
+.panel{background:var(--surface);border:1px solid var(--line);border-top:0;border-radius:0 0 8px 8px}
+.toolbar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;padding:10px 12px;border-bottom:1px solid var(--line2);font-size:13px;color:var(--muted)}
+.scroll{overflow-x:auto}
+table.plan{border-collapse:collapse;width:100%;min-width:1180px;font-size:13px;font-variant-numeric:tabular-nums}
+.plan th{position:sticky;top:0;background:var(--head);color:var(--head-ink);font-weight:700;font-size:12px;padding:8px 6px;text-align:center;white-space:nowrap;z-index:1}
+.plan th.grp{background:var(--teal);color:var(--teal-ink)}
+.plan td{border-bottom:1px solid var(--line2);padding:3px 6px;vertical-align:middle}
+.plan td.c{text-align:center}
+.plan td.id{color:var(--muted);font-family:var(--f-mono);font-size:12px;text-align:center}
+.plan td.task{min-width:260px}
+.plan td.task b{font-weight:700}
+.plan td.date{font-family:var(--f-mono);font-size:12px;white-space:nowrap;text-align:center}
+.plan tr.sec td{background:var(--band);color:#fff;font-weight:700;letter-spacing:.04em;font-size:12px;text-transform:uppercase;padding:6px}
+.plan tr.subsec td{background:var(--sub);color:var(--fg);font-weight:700;font-size:13px;padding:5px 6px 5px 20px}
+.plan tr.sec.off td,.plan tr.subsec.off td{opacity:.55}
+.plan tr.off td{color:var(--off)} .plan tr.off td.task{text-decoration:line-through}
+.plan input,.plan select{background:var(--teal-t);border-color:transparent;padding:3px 5px;font-size:13px;width:100%}
+.plan select[data-f=status]{min-width:118px}.plan select[data-f=inc]{min-width:96px}.plan select[data-f=cv]{min-width:66px}
+.plan input.num{width:56px;text-align:center;font-family:var(--f-mono);font-size:12px}
+.plan input.dt{width:128px;font-family:var(--f-mono);font-size:12px}
+.plan input.flag,.plan select.flag{background:var(--red-t);color:var(--red);font-weight:700}
+.plan select.manual{background:var(--slate-t);color:var(--slate);font-weight:700}
+.plan input.taskname{background:transparent;border-color:var(--line);font-weight:600}
+.chip{display:inline-block;font-size:11px;font-weight:700;padding:1px 7px;border-radius:999px;border:1px solid var(--line);color:var(--muted);white-space:nowrap}
+.own{display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+.dot{width:10px;height:10px;border-radius:2px;flex-shrink:0}
+.o-Team{background:var(--teal)} .o-Client{background:var(--slate)} .o-Both{background:var(--grey)}
+.cut{color:var(--red);font-weight:700;font-family:var(--f-mono)}
+.rem{min-width:220px}
+.plan textarea.remtx{width:100%;min-height:30px;height:30px;resize:vertical;font:13px var(--f-body);background:var(--teal-t);border:1px solid transparent;border-radius:6px;padding:4px 6px}
+.dep{display:flex;flex-direction:column;align-items:center;gap:2px;min-width:150px}
+.depname{font-size:11px;color:var(--muted);max-width:160px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:center}
+.depname.bad{color:var(--red);font-weight:700}
+.mv{display:inline-flex;gap:2px;margin-right:6px}
+.mv button{border:1px solid var(--line);background:var(--surface);color:var(--fg);border-radius:4px;width:24px;height:22px;cursor:pointer;font:700 11px var(--f-body);padding:0}
+.mv button:disabled{opacity:.35;cursor:default}
+.addrow td{padding:6px}
+.addrow button{background:none;border:1px dashed var(--line);color:var(--teal);border-radius:6px;padding:4px 10px;font:600 12px var(--f-body);cursor:pointer}
+.del{background:none;border:0;color:var(--muted);cursor:pointer;font-size:12px;text-decoration:underline}
+/* gantt */
+.gwrap{overflow-x:auto}
+.gantt{position:relative;font-size:12px}
+.grow{display:grid;grid-template-columns:300px 1fr;border-bottom:1px solid var(--line2);min-height:24px;align-items:center}
+.grow .gl{padding:3px 8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;position:sticky;left:0;background:var(--surface);z-index:2}
+.grow.sec .gl{background:var(--band);color:#fff;font-weight:700;text-transform:uppercase;font-size:11px;letter-spacing:.05em}
+.grow.sec{background:var(--band)}
+.grow.subsec .gl,.grow.subsec{background:var(--sub);font-weight:700}
+.track{position:relative;height:22px}
+.bar{position:absolute;top:4px;height:14px;border-radius:3px}
+.bar.ms{outline:2px solid var(--fg);outline-offset:1px}
+.ghead{display:grid;grid-template-columns:300px 1fr;position:sticky;top:0;z-index:3;background:var(--head);color:var(--head-ink)}
+.ghead .gl{padding:6px 8px;font-weight:700;position:sticky;left:0;background:var(--head)}
+.weeks{position:relative;height:32px}
+.wk{position:absolute;top:0;height:100%;border-left:1px solid rgba(255,255,255,.25);font-size:10px;padding:2px 3px;line-height:1.2;white-space:nowrap}
+.vline{position:absolute;top:0;bottom:0;border-left:1px solid var(--line2);pointer-events:none}
+.today{position:absolute;top:0;bottom:0;border-left:2px solid var(--red);pointer-events:none;z-index:1}
+.legend{display:flex;flex-wrap:wrap;gap:14px;align-items:center}
+.legend .own{font-size:13px}
+.empty{padding:24px;color:var(--muted)}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(20px + env(safe-area-inset-bottom,0px));background:var(--fg);color:var(--bg);padding:8px 14px;border-radius:6px;font-weight:700;z-index:20}
+.note{font-size:13px;color:var(--muted);margin:6px 0 0}
+.copybox{width:100%;min-height:120px;margin:10px 12px;max-width:calc(100% - 24px)}
+.foot{max-width:1280px;margin:0 auto;padding-inline:16px;padding-block:0 32px;color:var(--muted);font-size:13px}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+<style>[hidden]{display:none!important}body{margin:0}</style>
+</head>
+<body>
+
+
+<div class="app">
+  <header class="top">
+    <div><h1 id="title">Assessment Project Planner</h1><div class="sub" id="subtitle">Set the scope, and the plan, Gantt and client copy build themselves.</div></div>
+    <span class="spacer"></span>
+    <button class="btn ghost" id="resetBtn" type="button">Reset to template</button>
+    <button class="btn" id="xlBtn" type="button">Download Excel</button>
+  </header>
+
+  <div class="grid">
+    <section class="card" aria-labelledby="setupH">
+      <h2 id="setupH">Project set-up</h2>
+      <div class="fields">
+        <label class="f">Client / project<input id="pName" placeholder="e.g. Acme leadership assessment 2027"></label>
+        <label class="f">Start date<input id="pStart" type="date"></label>
+        <label class="f">Client target finish<input id="pTarget" type="date"></label>
+      </div>
+      <div class="scope" id="scope"></div>
+      <div class="fields dcf" id="dcFields" style="margin-top:12px">
+        <label class="f">DC start date<input id="dcStart" type="date"></label>
+        <label class="f">Number of DC days<input id="dcDays" type="number" min="1"></label>
+        <div class="f" id="dcMsg" style="justify-content:flex-end;font-weight:400"></div>
+      </div>
+      <details style="margin-top:12px"><summary style="cursor:pointer;font-weight:600;font-size:14px">Holidays (<span id="holCount">0</span>)</summary>
+        <p class="note">One date per line, as YYYY-MM-DD. Every date in the plan skips these.</p>
+        <textarea id="hol" aria-label="Holidays" placeholder="2027-01-26&#10;2027-03-14"></textarea>
+      </details>
+    </section>
+
+    <section class="card tl" aria-labelledby="tlH">
+      <h2 id="tlH">Timeline check</h2>
+      <table>
+        <thead><tr><th></th><th>Finish</th><th style="text-align:right">Working days</th></tr></thead>
+        <tbody>
+          <tr><td>Standard plan</td><td id="stdF"></td><td class="n" id="stdW"></td></tr>
+          <tr><td>Client target</td><td id="tgtF"></td><td class="n" id="tgtW"></td></tr>
+          <tr><td>Revised plan</td><td id="revF"></td><td class="n" id="revW"></td></tr>
+        </tbody>
+      </table>
+      <div class="verdict" id="verdict"></div>
+      <div class="stats">
+        <span>Days reduced <b id="cutT">0</b></span>
+        <span>Client-owned WD <b id="cliT">0</b></span>
+        <span>Tasks in scope <b id="nT">0</b></span>
+      </div>
+    </section>
+  </div>
+
+  <nav class="tabs" role="tablist">
+    <button class="tab" role="tab" data-v="plan" type="button">Plan</button>
+    <button class="tab" role="tab" data-v="gantt" type="button">Gantt</button>
+    <button class="tab" role="tab" data-v="client" type="button">Client view</button>
+  </nav>
+  <div class="panel" id="panel"></div>
+</div>
+<footer class="foot">Illustrative template with example turnaround times. Your edits stay in your own browser.</footer>
+<div class="toast" id="toast" hidden></div>
+
+<script>
+const TEMPLATE=[{"k": "S", "t": "KICK-OFF"}, {"key": "k1", "task": "Internal kick-off & handover", "owner": "Delivery team", "tag": "Core", "deps": [], "tat": 1, "ms": false, "rem": null, "cv": false}, {"key": "k2", "task": "Create project plan", "owner": "Delivery team", "tag": "Core", "deps": ["k1"], "tat": 2, "ms": false, "rem": null, "cv": false}, {"key": "k3", "task": "Client kick-off call + share project plan", "owner": "Joint", "tag": "Core", "deps": ["k2"], "tat": 1, "ms": false, "rem": null, "cv": true}, {"key": "k4", "task": "Sign-off on project plan", "owner": "Client", "tag": "Core", "deps": ["k3"], "tat": 2, "ms": false, "rem": null, "cv": true}, {"key": "k5", "task": "Client shares CF, JDs, culture docs", "owner": "Joint", "tag": "Core", "deps": ["k3"], "tat": 3, "ms": false, "rem": null, "cv": true}, {"key": "k6", "task": "Create assessor panel", "owner": "Delivery team", "tag": "DC", "deps": ["k3"], "tat": 3, "ms": false, "rem": null, "cv": false}, {"key": "k7", "task": "Share assessor profiles", "owner": "Delivery team", "tag": "DC", "deps": ["k6"], "tat": 1, "ms": false, "rem": null, "cv": true}, {"key": "k8", "task": "Sign-off on assessor panel", "owner": "Client", "tag": "DC", "deps": ["k7"], "tat": 2, "ms": false, "rem": null, "cv": true}, {"key": "k9", "task": "Soft block assessor calendars", "owner": "Delivery team", "tag": "DC", "deps": ["k8"], "tat": 1, "ms": false, "rem": null, "cv": false}, {"k": "S", "t": "DISCOVERY & DESIGN"}, {"key": "d1", "task": "Schedule LIs / FGDs", "owner": "Joint", "tag": "LI", "deps": ["k5"], "tat": 2, "ms": false, "rem": null, "cv": true}, {"key": "d2", "task": "Conduct LIs / FGDs", "owner": "Joint", "tag": "LI", "deps": ["d1"], "tat": 6, "ms": false, "rem": null, "cv": true}, {"key": "d3", "task": "Create discovery analysis", "owner": "Delivery team", "tag": "LI", "deps": ["d2"], "tat": 4, "ms": false, "rem": null, "cv": false}, {"key": "d4", "task": "Share discovery analysis", "owner": "Delivery team", "tag": "LI", "deps": ["d3"], "tat": 1, "ms": false, "rem": null, "cv": true}, {"key": "d5", "task": "Create / revise competency framework (success profile for 360)", "owner": "Delivery team", "tag": "CF", "deps": ["d4", "k5"], "tat": 5, "ms": false, "rem": null, "cv": false}, {"key": "d6", "task": "Share competency framework", "owner": "Delivery team", "tag": "CF", "deps": ["d5"], "tat": 1, "ms": false, "rem": null, "cv": true}, {"key": "d7", "task": "Sign-off on competency framework", "owner": "Client", "tag": "CF", "deps": ["d6"], "tat": 3, "ms": false, "rem": null, "cv": true}, {"key": "d8", "task": "Create assessment matrix (tools x competencies)", "owner": "Delivery team", "tag": "Core", "deps": ["d7"], "tat": 3, "ms": false, "rem": null, "cv": false}, {"key": "d9", "task": "Create participant report format", "owner": "Delivery team", "tag": "Core", "deps": ["d7"], "tat": 5, "ms": false, "rem": null, "cv": false}, {"key": "d10", "task": "Share assessment matrix + report format", "owner": "Delivery team", "tag": "Core", "deps": ["d8", "d9"], "tat": 1, "ms": false, "rem": null, "cv": true}, {"key": "d11", "task": "Sign-off on assessment matrix + report format", "owner": "Client", "tag": "Core", "deps": ["d10"], "tat": 3, "ms": true, "rem": "Milestone", "cv": true}, {"key": "d12", "task": "Share branding request", "owner": "Delivery team", "tag": "Branding", "deps": ["k4"], "tat": 1, "ms": false, "rem": null, "cv": true}, {"key": "d13", "task": "Client shares logos, brand guidelines and colours", "owner": "Client", "tag": "Branding", "deps": ["d12"], "tat": 2, "ms": false, "rem": null, "cv": true}, {"key": "d14", "task": "Set up branding on the platform", "owner": "Delivery team", "tag": "Branding", "deps": ["d13"], "tat": 3, "ms": false, "rem": null, "cv": false}, {"key": "d15", "task": "Create mailers + participant (and rater) database templates", "owner": "Delivery team", "tag": "Core", "deps": ["d11"], "tat": 2, "ms": false, "rem": null, "cv": false}, {"key": "d16", "task": "Share mailers + database templates", "owner": "Delivery team", "tag": "Core", "deps": ["d15"], "tat": 1, "ms": false, "rem": null, "cv": true}, {"key": "d17", "task": "Sign-off on mailers + final participant (and rater) database", "owner": "Client", "tag": "Core", "deps": ["d16"], "tat": 3, "ms": false, "rem": null, "cv": true}, {"key": "d18", "task": "Set up mailers; upload participant (and rater) database", "owner": "Delivery team", "tag": "Core", "deps": ["d17"], "tat": 2, "ms": false, "rem": null, "cv": false}, {"k": "S", "t": "ONLINE ASSESSMENTS"}, {"key": "a1", "task": "Map framework to online assessments", "owner": "Delivery team", "tag": "Online", "deps": ["d11"], "tat": 1, "ms": false, "rem": null, "cv": false}, {"key": "a2", "task": "Set up online assessments on the platform", "owner": "Delivery team", "tag": "Online", "deps": ["a1", "d18"], "tat": 2, "ms": false, "rem": null, "cv": false}, {"key": "a3", "task": "Sign off on an agreed upon reminder cadence", "owner": "Joint", "tag": "Online", "deps": ["a2"], "tat": 1, "ms": false, "rem": "Placeholder: confirm the reminder cadence with the client.", "cv": true}, {"k": "S", "t": "360"}, {"key": "s1", "task": "Create 360 questionnaire", "owner": "Delivery team", "tag": "360", "deps": ["d11"], "tat": 5, "ms": false, "rem": null, "cv": false}, {"key": "s2", "task": "Share 360 questionnaire", "owner": "Delivery team", "tag": "360", "deps": ["s1"], "tat": 1, "ms": false, "rem": null, "cv": true}, {"key": "s3", "task": "Sign-off on 360 questionnaire", "owner": "Client", "tag": "360", "deps": ["s2"], "tat": 2, "ms": false, "rem": null, "cv": true}, {"key": "s4", "task": "Set up 360Survey on the platform", "owner": "Delivery team", "tag": "360", "deps": ["s3"], "tat": 5, "ms": false, "rem": null, "cv": false}, {"key": "s5", "task": "360 platform demo & sign-off (QC1 / QC2)", "owner": "Delivery team", "tag": "360", "deps": ["s4"], "tat": 2, "ms": false, "rem": null, "cv": false}, {"key": "s6", "task": "Sign off on an agreed upon reminder cadence", "owner": "Joint", "tag": "360", "deps": ["s5"], "tat": 1, "ms": false, "rem": "Placeholder: confirm the reminder cadence with the client.", "cv": true}, {"k": "S", "t": "DC DESIGN"}, {"key": "c1", "task": "Create exercises", "owner": "Delivery team", "tag": "DC", "deps": ["d11"], "tat": 5, "ms": false, "rem": null, "cv": false}, {"key": "c2", "task": "Share exercises", "owner": "Delivery team", "tag": "DC", "deps": ["c1"], "tat": 1, "ms": false, "rem": null, "cv": true}, {"key": "c3", "task": "Sign-off on exercises", "owner": "Client", "tag": "DC", "deps": ["c2"], "tat": 3, "ms": false, "rem": null, "cv": true}, {"key": "c4", "task": "Create AC/DC schedule (master, participant, assessor)", "owner": "Delivery team", "tag": "DC", "deps": ["d11", "k8"], "tat": 5, "ms": false, "rem": null, "cv": false}, {"key": "c5", "task": "Share schedule", "owner": "Delivery team", "tag": "DC", "deps": ["c4"], "tat": 1, "ms": false, "rem": null, "cv": true}, {"key": "c6", "task": "Sign-off on schedule", "owner": "Client", "tag": "DC", "deps": ["c5"], "tat": 2, "ms": false, "rem": null, "cv": true}, {"key": "c7", "task": "Platform set-up for DC tools and score entry (Custom Exercise Platform if virtual)", "owner": "Delivery team", "tag": "DC", "deps": ["c3"], "tat": 5, "ms": false, "rem": null, "cv": false}, {"key": "c8", "task": "DC platform demo & sign-off (QC1 / QC2)", "owner": "Delivery team", "tag": "DC", "deps": ["c7"], "tat": 2, "ms": false, "rem": null, "cv": false}, {"key": "c9", "task": "Create offline scoring sheet (custom tools)", "owner": "Delivery team", "tag": "DC", "deps": ["c3"], "tat": 3, "ms": false, "rem": null, "cv": false}, {"key": "c10", "task": "QC offline scoring sheet", "owner": "Delivery team", "tag": "DC", "deps": ["c9"], "tat": 1, "ms": false, "rem": null, "cv": false}, {"k": "S", "t": "SCORING & REPORTS"}, {"key": "r1", "task": "Raise report set-up request with the platform team", "owner": "Delivery team", "tag": "Core", "deps": ["d11"], "tat": 1, "ms": false, "rem": null, "cv": false}, {"key": "r2", "task": "Report set-up & QC on the platform", "owner": "Delivery team", "tag": "Core", "deps": ["r1"], "tat": 10, "ms": false, "rem": null, "cv": false}, {"key": "r3", "task": "Score set-up: norms + scoring file", "owner": "Delivery team", "tag": "Core", "deps": ["r2", "c8"], "tat": 5, "ms": false, "rem": null, "cv": false}, {"key": "r4", "task": "Scoring file QC1 / QC2 sign-off", "owner": "Delivery team", "tag": "Core", "deps": ["r3"], "tat": 2, "ms": false, "rem": null, "cv": false}, {"k": "S", "t": "LAUNCH & GO-LIVE"}, {"k": "U", "t": "Participant orientation"}, {"key": "l1", "task": "Create participant orientation deck", "owner": "Delivery team", "tag": "Core", "deps": ["d18"], "tat": 2, "ms": false, "rem": null, "cv": false}, {"key": "l2", "task": "Share participant orientation deck", "owner": "Delivery team", "tag": "Core", "deps": ["l1"], "tat": 1, "ms": false, "rem": null, "cv": true}, {"key": "l3", "task": "Conduct participant (and rater) orientation", "owner": "Joint", "tag": "Core", "deps": ["l2"], "tat": 1, "ms": false, "rem": null, "cv": true}, {"k": "U", "t": "Online assessments"}, {"key": "la0", "task": "Launch of online assessments", "owner": "Delivery team", "tag": "Online", "deps": ["a2"], "tat": 1, "ms": false, "rem": null, "cv": true}, {"key": "la1", "task": "Online assessment window (invites, reminders, completion tracker)", "owner": "Joint", "tag": "Online", "deps": ["la0", "l3"], "tat": 10, "ms": false, "rem": null, "cv": true}, {"key": "la2", "task": "Download online assessment scores", "owner": "Delivery team", "tag": "Online", "deps": ["la1"], "tat": 2, "ms": false, "rem": null, "cv": false}, {"k": "U", "t": "360"}, {"key": "ls0", "task": "Launch of 360", "owner": "Delivery team", "tag": "360", "deps": ["s5"], "tat": 1, "ms": false, "rem": null, "cv": true}, {"key": "ls1", "task": "360 survey window (invites, reminders, completion tracker)", "owner": "Joint", "tag": "360", "deps": ["ls0", "l3"], "tat": 15, "ms": true, "rem": "Milestone", "cv": true}, {"key": "ls2", "task": "Close survey; collate participant feedback", "owner": "Delivery team", "tag": "360", "deps": ["ls1"], "tat": 2, "ms": false, "rem": null, "cv": false}, {"k": "U", "t": "DC"}, {"key": "lc1", "task": "Create assessor orientation deck", "owner": "Delivery team", "tag": "DC", "deps": ["c3"], "tat": 2, "ms": false, "rem": null, "cv": false}, {"key": "lc2", "task": "Conduct assessor orientation", "owner": "Delivery team", "tag": "DC", "deps": ["lc1", "k9"], "tat": 1, "ms": false, "rem": null, "cv": false}, {"key": "lc3", "task": "Confirm venue and logistics; book travel", "owner": "Joint", "tag": "DC-In-person", "deps": ["c6"], "tat": 5, "ms": false, "rem": null, "cv": true}, {"key": "lc4", "task": "Send schedules and collaterals; hard block calendars", "owner": "Delivery team", "tag": "DC", "deps": ["c6", "lc2"], "tat": 2, "ms": false, "rem": null, "cv": false}, {"key": "lc5", "task": "Prepare & QC delivery toolkit", "owner": "Delivery team", "tag": "DC-In-person", "deps": ["lc4", "c10"], "tat": 3, "ms": false, "rem": null, "cv": false}, {"key": "lc6", "task": "DC day(s): calibration and end-of-day reporting", "owner": "Joint", "tag": "DC", "deps": ["lc5", "la1"], "tat": 3, "ms": true, "rem": "Milestone. Enter the DC start date and number of DC days in Project set-up; the number of days varies project by project.", "cv": true}, {"k": "S", "t": "REPORTING & FEEDBACK"}, {"key": "f1", "task": "Collect ratings and pen-pictures; consolidate", "owner": "Delivery team", "tag": "DC", "deps": ["lc6"], "tat": 5, "ms": false, "rem": "Ends one week after the DC day ends.", "cv": false}, {"key": "f2", "task": "Scores QC1 / QC2; share scores with client", "owner": "Delivery team", "tag": "Core", "deps": ["f1", "la2"], "tat": 2, "ms": false, "rem": null, "cv": true}, {"key": "f3", "task": "Generate participant reports", "owner": "Delivery team", "tag": "Core", "deps": ["f2", "ls2"], "tat": 20, "ms": false, "rem": null, "cv": false}, {"key": "f4", "task": "Report QC1 / QC2", "owner": "Delivery team", "tag": "Core", "deps": ["f3"], "tat": 3, "ms": false, "rem": null, "cv": false}, {"key": "f5", "task": "Share participant reports", "owner": "Delivery team", "tag": "Core", "deps": ["f4"], "tat": 1, "ms": false, "rem": null, "cv": true}, {"key": "f6", "task": "Create debrief deck", "owner": "Delivery team", "tag": "Core", "deps": ["f4"], "tat": 2, "ms": false, "rem": null, "cv": false}, {"key": "f7", "task": "Conduct group report debrief", "owner": "Joint", "tag": "Core", "deps": ["f5", "f6"], "tat": 2, "ms": false, "rem": null, "cv": true}, {"key": "f8", "task": "Create group analysis", "owner": "Delivery team", "tag": "Core", "deps": ["f4"], "tat": 5, "ms": false, "rem": null, "cv": false}, {"key": "f9", "task": "Share / present group analysis", "owner": "Joint", "tag": "Core", "deps": ["f8"], "tat": 1, "ms": false, "rem": null, "cv": true}, {"key": "f10", "task": "1:1 feedback / IDP sessions", "owner": "Joint", "tag": "IDP", "deps": ["f5"], "tat": 10, "ms": false, "rem": null, "cv": true}, {"key": "f11", "task": "Collect and track IDPs", "owner": "Delivery team", "tag": "IDP", "deps": ["f10"], "tat": 5, "ms": false, "rem": null, "cv": false}, {"key": "f12", "task": "Client closure call + feedback form", "owner": "Joint", "tag": "Core", "deps": ["f9", "f11"], "tat": 2, "ms": false, "rem": null, "cv": true}, {"key": "f13", "task": "Team closure call; assessor feedback", "owner": "Delivery team", "tag": "Core", "deps": ["f12"], "tat": 1, "ms": false, "rem": null, "cv": false}, {"key": "f14", "task": "Send close-out email", "owner": "Delivery team", "tag": "Core", "deps": ["f12"], "tat": 1, "ms": false, "rem": null, "cv": false}, {"key": "f15", "task": "Write a one-page case study", "owner": "Delivery team", "tag": "Core", "deps": ["f12"], "tat": 2, "ms": false, "rem": null, "cv": false}];
+const SCOPE=[["Online","Online assessments (personality + cognitive)","Y"],["360","360","N"],["DC","Development Centre","Y"],["DCFMT","DC format","Virtual"],
+ ["CF","Competency framework creation","Y"],["LI","Leadership interviews / FGDs","Y"],["Branding","Platform branding","Y"],["IDP","1:1 feedback / IDP","Y"]];
+const KEY="assessment-planner-v1";
+const MON=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+
+function fresh(){
+  let n=0; const rows=TEMPLATE.map(r=>r.key?Object.assign({},r,{id:++n,status:"Not Started",red:"",fixed:"",buf:"",inc:"",deps:r.deps.slice()}):Object.assign({},r));
+  const map={};rows.forEach(r=>{if(r.key)map[r.key]=r.id;});
+  rows.forEach(r=>{if(r.key)r.deps=r.deps.map(k=>map[k]);});
+  const sc={};SCOPE.forEach(([k,,v])=>sc[k]=v);
+  return {name:"",start:"2026-12-01",target:"",hol:"",scope:sc,rows,view:"plan",nextId:n+1};
+}
+let S;
+try{S=JSON.parse(localStorage.getItem(KEY)||"null");}catch(e){S=null}
+if(!S||!S.rows)S=fresh();
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){}}
+
+// ---- dates (UTC day numbers)
+const DAY=86400000;
+const toN=s=>{if(!s)return null;const[y,m,d]=s.split("-").map(Number);return Date.UTC(y,m-1,d)/DAY;};
+const toS=n=>{const d=new Date(n*DAY);return d.toISOString().slice(0,10);};
+const fmt=n=>{if(n==null)return"";const d=new Date(n*DAY);return String(d.getUTCDate()).padStart(2,"0")+"-"+MON[d.getUTCMonth()]+"-"+String(d.getUTCFullYear()).slice(2);};
+let HOL=new Set();
+const isWork=n=>{const w=new Date(n*DAY).getUTCDay();return w!==0&&w!==6&&!HOL.has(n);};
+function workday(n,k){let d=n;if(k===0)return d;const s=k>0?1:-1;let c=Math.abs(k);while(c>0){d+=s;if(isWork(d))c--;}return d;}
+function netdays(a,b){if(b<a)return -netdays(b,a);let c=0;for(let d=a;d<=b;d++)if(isWork(d))c++;return c;}
+
+function scopeVal(tag){
+  const s=S.scope;
+  if(tag==="Core")return"Y";
+  if(tag==="DC-In-person")return s.DC==="Y"&&s.DCFMT==="In-person"?"Y":"N";
+  if(tag==="DC-Virtual")return s.DC==="Y"&&s.DCFMT==="Virtual"?"Y":"N";
+  return s[tag]||"Y";
+}
+function compute(){
+  HOL=new Set((S.hol||"").split(/\s+/).map(toN).filter(x=>x!=null));
+  const start=toN(S.start)||toN(new Date().toISOString().slice(0,10));
+  const calc={},std={},err={};const R={};
+  const ids=new Set(S.rows.filter(r=>r.id).map(r=>r.id));
+  for(const r of S.rows){ if(!r.id)continue;
+    const inc=r.inc||scopeVal(r.tag);
+    let pe=start-1,spe=start-1;
+    r.deps.forEach((d,i)=>{ if(d==null||d==="")return;
+      if(!(d in calc)){err[r.id]=err[r.id]||[];err[r.id][i]=true;return;}
+      if(i===0){pe=calc[d];spe=std[d];}else{pe=Math.max(pe,calc[d]);spe=Math.max(spe,std[d]);} });
+    const buf=+r.buf||0;
+    if(inc==="N"){calc[r.id]=pe;std[r.id]=spe;R[r.id]={inc,start:null,end:null,pe};continue;}
+    const fx=toN(r.fixed);
+    const s=fx!=null?fx:workday(pe,1+buf);
+    const dur=Math.max(r.red!==""&&r.red!=null?+r.red:+r.tat,1);
+    const e=workday(s,dur-1);
+    calc[r.id]=e; std[r.id]=workday(workday(spe,1+buf),Math.max(+r.tat,1)-1);
+    R[r.id]={inc,start:s,end:e,pe,fxBad:fx!=null&&fx<=pe,cut:(r.red!==""&&r.red!=null)?(+r.tat-+r.red):null};
+  }
+  return {R,err,start,stdEnd:Math.max(...Object.values(std)),revEnd:Math.max(...Object.values(R).filter(x=>x.end!=null).map(x=>x.end))};
+}
+
+// ---- rendering
+const $=id=>document.getElementById(id);
+function toast(m){const t=$("toast");t.textContent=m;t.hidden=false;clearTimeout(toast.t);toast.t=setTimeout(()=>t.hidden=true,2200);}
+function ownClass(o){return o==="Delivery team"?"o-Team":o==="Client"?"o-Client":"o-Both";}
+function esc(s){return String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));}
+
+function renderSetup(){
+  $("pName").value=S.name; $("pStart").value=S.start; $("pTarget").value=S.target; $("hol").value=S.hol;
+  $("scope").innerHTML=SCOPE.map(([k,l])=>{
+    const v=S.scope[k];
+    if(k==="DCFMT")return `<div class="tog"><span>${l}</span><div class="seg" role="group" aria-label="${l}">${["In-person","Virtual"].map(o=>`<button type="button" data-k="${k}" data-v="${o}" aria-pressed="${v===o}" ${S.scope.DC!=="Y"?"disabled":""}>${o}</button>`).join("")}</div></div>`;
+    return `<div class="tog"><span>${l}</span><div class="seg no" role="group" aria-label="${l}"><button type="button" data-k="${k}" data-v="Y" aria-pressed="${v==="Y"}">Yes</button><button type="button" class="n" data-k="${k}" data-v="N" aria-pressed="${v==="N"}">No</button></div></div>`;
+  }).join("");
+  $("scope").querySelectorAll("button").forEach(b=>b.onclick=()=>{S.scope[b.dataset.k]=b.dataset.v;save();renderSetup();renderAll();});
+  const dc=dcRow(); const dcOn=S.scope.DC==="Y";
+  $("dcFields").hidden=!dcOn||!dc;
+  if(dc){$("dcStart").value=dc.fixed||"";$("dcDays").value=dc.tat;}
+  $("holCount").textContent=(S.hol||"").split(/\s+/).filter(x=>toN(x)!=null).length;
+  $("title").textContent=S.name?S.name:"Assessment Project Planner";
+}
+function dcRow(){return S.rows.find(r=>r.key==="lc6");}
+function renderDC(C){
+  const dc=dcRow(); const m=$("dcMsg"); if(!dc||S.scope.DC!=="Y"){m.textContent="";return;}
+  const x=C.R[dc.id]; if(!x||x.start==null){m.textContent="";return;}
+  const earliest=workday(x.pe,1);
+  if(!dc.fixed){m.innerHTML=`Earliest possible start: <b>${fmt(earliest)}</b>. If you leave DC start date empty, the plan uses this date.`;m.style.color="var(--muted)";}
+  else if(x.fxBad){m.innerHTML=`Too early: prep finishes ${fmt(x.pe)}. Earliest start is <b>${fmt(earliest)}</b>.`;m.style.color="var(--red)";}
+  else{m.innerHTML=`DC runs ${fmt(x.start)} to ${fmt(x.end)}.`;m.style.color="var(--teal-d)";}
+}
+function renderTimeline(C){
+  const sw=netdays(C.start,C.stdEnd), rw=netdays(C.start,C.revEnd), t=toN(S.target);
+  $("stdF").textContent=fmt(C.stdEnd);$("stdW").textContent=sw;
+  $("revF").textContent=fmt(C.revEnd);$("revW").textContent=rw;
+  $("tgtF").textContent=t!=null?fmt(t):"Not set";$("tgtW").textContent=t!=null?netdays(C.start,t):"";
+  const v=$("verdict");v.className="verdict";
+  if(t==null){v.textContent="Enter the client target finish to check compression.";}
+  else{const tw=netdays(C.start,t);
+    if(sw<=tw){v.textContent="Standard plan meets the target.";v.classList.add("good");}
+    else{const need=sw-tw;let m=`Target needs ${need} WD of compression (${Math.round(need/sw*100)}%). `;
+      if(C.revEnd<=t){m+="Revised plan meets the target.";v.classList.add("good");}
+      else{m+=`Revised plan is still ${netdays(t,C.revEnd)-1} WD over.`;v.classList.add("bad");}
+      v.textContent=m;}
+  }
+  let cut=0,cli=0,n=0;
+  S.rows.forEach(r=>{if(!r.id)return;const x=C.R[r.id];if(x.inc!=="Y")return;n++;if(x.cut)cut+=x.cut;if(r.owner==="Client")cli+=+r.tat;});
+  $("cutT").textContent=cut;$("cliT").textContent=cli;$("nT").textContent=n;
+}
+function sections(C){ // mark which headers have included tasks
+  const on={};let sec=null,sub=null;
+  S.rows.forEach((r,i)=>{ if(!r.id){ if(r.k==="S"){sec=i;sub=null;}else sub=i; on[i]=on[i]||{inc:0,cli:0}; return;}
+    const x=C.R[r.id]; if(x.inc==="Y"){ [sec,sub].forEach(h=>{if(h!=null){on[h].inc++; if(r.cv)on[h].cli++;}});} });
+  return on;
+}
+function depCell(r,k,er){
+  const d=r.deps[k]; const t=d!=null&&d!==""?S.rows.find(x=>x.id===d):null;
+  const name=d==null||d===""?"":(t?t.task:"No task with this ID");
+  return `<div class="dep"><input class="num${er[k]?" flag":""}" data-f="d${k}" type="number" min="1" value="${d??""}" aria-label="Dependency ${k+1}"><span class="depname${t||!name?"":" bad"}" title="${esc(name)}">${esc(name)}</span></div>`;
+}
+function canMove(i,dir){const j=i+dir;return j>=0&&j<S.rows.length&&!!S.rows[j].id;}
+function planView(C){
+  const on=sections(C);
+  let h=`<div class="toolbar"><span>Shaded cells are inputs. Dates follow dependencies, never row order.</span><span class="spacer"></span>
+  <span class="legend"><span class="own"><span class="dot" style="background:var(--slate-t);border:1px solid var(--slate)"></span>Manual include</span><span class="own"><span class="dot" style="background:var(--red-t);border:1px solid var(--red)"></span>Needs attention</span></span></div>
+  <div class="scroll"><table class="plan"><thead><tr>
+  <th>ID</th><th style="text-align:left">Task</th><th>Owner</th><th>Start</th><th>End</th><th>TAT</th><th>Status</th><th>Client view</th>
+  <th class="grp">Include</th><th class="grp">Reduced TAT</th><th class="grp">Fixed date</th><th class="grp">Buffer days</th><th class="grp">Dependency 1</th><th class="grp">Dependency 2</th><th>Days reduced</th><th style="text-align:left">Remarks</th><th></th></tr></thead><tbody>`;
+  S.rows.forEach((r,i)=>{
+    if(!r.id){
+      const off=on[i].inc===0;
+      h+=`<tr class="${r.k==="S"?"sec":"subsec"}${off?" off":""}"><td colspan="17">${esc(r.t)}${off?" (not in scope)":""}</td></tr>`;
+      return;
+    }
+    const x=C.R[r.id];const off=x.inc==="N";const er=C.err[r.id]||[];
+    const auto=scopeVal(r.tag);
+    h+=`<tr class="${off?"off":""}" data-i="${i}">
+      <td class="id">${r.id}</td>
+      <td class="task">${r.custom?`<input class="taskname" data-f="task" value="${esc(r.task)}" aria-label="Task name">`:(r.ms?`<b>${esc(r.task)}</b>`:esc(r.task))}</td>
+      <td>${r.custom?`<select data-f="owner" aria-label="Owner">${["Delivery team","Client","Joint"].map(o=>`<option${o===r.owner?" selected":""}>${o}</option>`).join("")}</select>`:`<span class="own"><span class="dot ${ownClass(r.owner)}"></span>${esc(r.owner)}</span>`}</td>
+      <td class="date">${fmt(x.start)}</td><td class="date">${fmt(x.end)}</td>
+      <td class="c"><input class="num" data-f="tat" type="number" min="0" value="${r.tat}" aria-label="TAT"></td>
+      <td><select data-f="status" aria-label="Status">${["Not Started","In Progress","Done","On Hold","N/A"].map(o=>`<option${o===r.status?" selected":""}>${o}</option>`).join("")}</select></td>
+      <td class="c"><select data-f="cv" aria-label="Client view"><option value="1"${r.cv?" selected":""}>Yes</option><option value="0"${!r.cv?" selected":""}>No</option></select></td>
+      <td class="c"><select data-f="inc" aria-label="Include" class="${r.inc?"manual":""}"><option value=""${!r.inc?" selected":""}>Auto (${auto})</option><option value="Y"${r.inc==="Y"?" selected":""}>Y</option><option value="N"${r.inc==="N"?" selected":""}>N</option></select></td>
+      <td class="c"><input class="num" data-f="red" type="number" min="0" value="${r.red??""}" aria-label="Reduced TAT"></td>
+      <td class="c"><input class="dt${x.fxBad?" flag":""}" data-f="fixed" type="date" value="${r.fixed||""}" aria-label="Fixed date" title="${x.fxBad?"Falls before its dependency ends":""}"></td>
+      <td class="c"><input class="num" data-f="buf" type="number" min="0" value="${r.buf??""}" aria-label="Buffer days"></td>
+      <td class="c">${depCell(r,0,er)}</td>
+      <td class="c">${depCell(r,1,er)}</td>
+      <td class="c">${x.cut?`<span class="cut">${x.cut}</span>`:""}</td>
+      <td class="rem"><textarea class="remtx" data-f="rem" rows="1" aria-label="Remarks for task ${r.id}">${esc(r.rem||"")}</textarea></td>
+      <td style="white-space:nowrap">${r.custom?`<span class="mv"><button type="button" data-mv="-1" data-at="${i}" aria-label="Move task ${r.id} up" ${canMove(i,-1)?"":"disabled"}>&#x25B2;</button><button type="button" data-mv="1" data-at="${i}" aria-label="Move task ${r.id} down" ${canMove(i,1)?"":"disabled"}>&#x25BC;</button></span><button class="del" data-del="${i}" type="button">Remove</button>`:""}</td></tr>`;
+    const nxt=S.rows[i+1];
+    if(!nxt||!nxt.id) h+=`<tr class="addrow"><td></td><td colspan="16"><button type="button" data-add="${i}">+ Add task here</button></td></tr>`;
+  });
+  h+=`</tbody></table></div>`;
+  $("panel").innerHTML=h;
+  $("panel").querySelectorAll("[data-f]").forEach(el=>{
+    el.addEventListener("change",()=>{
+      const r=S.rows[+el.closest("tr").dataset.i];const f=el.dataset.f;let v=el.value;
+      if(f==="d0"||f==="d1"){const k=f==="d0"?0:1;r.deps[k]=v===""?null:+v;}
+      else if(f==="cv")r.cv=v==="1";
+      else if(f==="tat")r.tat=Math.max(0,+v||0);
+      else r[f]=v;
+      save();renderAll();if(r.key==="lc6")renderSetup();
+    });
+  });
+  $("panel").querySelectorAll("[data-add]").forEach(b=>b.onclick=()=>{
+    const i=+b.dataset.add;const prev=S.rows[i];
+    const tag=prev.id?prev.tag:"Core";
+    const row={id:S.nextId++,key:"u"+Date.now(),task:"New task",owner:"Delivery team",tag,deps:[prev.id||null],tat:1,ms:false,rem:"",cv:false,status:"Not Started",red:"",fixed:"",buf:"",inc:"",custom:true};
+    S.rows.splice(i+1,0,row);save();renderAll();
+    const inp=$("panel").querySelector(`tr[data-i="${i+1}"] .taskname`);inp&&inp.select();
+  });
+  $("panel").querySelectorAll("[data-mv]").forEach(b=>b.onclick=()=>{
+    const i=+b.dataset.at,dir=+b.dataset.mv;if(!canMove(i,dir))return;
+    const t=S.rows[i];S.rows[i]=S.rows[i+dir];S.rows[i+dir]=t;save();renderAll();
+    const nb=$("panel").querySelector(`tr[data-i="${i+dir}"] [data-mv="${dir}"]`);(nb&&!nb.disabled?nb:$("panel").querySelector(`tr[data-i="${i+dir}"] .del`))?.focus();
+  });
+  $("panel").querySelectorAll("[data-del]").forEach(b=>b.onclick=()=>{S.rows.splice(+b.dataset.del,1);save();renderAll();toast("Task removed");});
+}
+function ganttView(C,clientOnly){
+  const rows=[];const on=sections(C);
+  S.rows.forEach((r,i)=>{
+    if(!r.id){ if(on[i].inc>0&&(!clientOnly||on[i].cli>0))rows.push({hdr:r.k,t:r.t}); return;}
+    const x=C.R[r.id]; if(x.inc!=="Y")return; if(clientOnly&&!r.cv)return;
+    rows.push({r,x});
+  });
+  if(!rows.length){$("panel").innerHTML=`<div class="empty">Nothing in scope yet. Switch on a component in Project set-up.</div>`;return;}
+  const s0=C.start-((new Date(C.start*DAY).getUTCDay()+6)%7); // Monday
+  const end=C.revEnd+7; const days=end-s0; const PX=9; const W=days*PX;
+  let wk="";for(let d=s0,i=1;d<end;d+=7,i++)wk+=`<div class="wk" style="left:${(d-s0)*PX}px">W${i}<br>${fmt(d).slice(0,6)}</div>`;
+  let vl="";for(let d=s0;d<end;d+=7)vl+=`<div class="vline" style="left:${(d-s0)*PX}px"></div>`;
+  const today=Math.floor(Date.now()/DAY);const tl=(today>=s0&&today<=end)?`<div class="today" style="left:${(today-s0)*PX}px" title="Today"></div>`:"";
+  let h=`<div class="toolbar"><span class="legend"><span class="own"><span class="dot o-Team"></span>Delivery team</span><span class="own"><span class="dot o-Client"></span>Client</span><span class="own"><span class="dot o-Both"></span>Joint</span><span class="own"><span class="dot" style="background:var(--red)"></span>Today</span><span class="own"><span class="dot" style="outline:2px solid var(--fg);background:var(--surface)"></span>Milestone</span></span>
+  ${clientOnly?`<span class="spacer"></span><button class="btn ghost" id="copyBtn" type="button">Copy client table</button>`:""}</div>
+  <div class="gwrap"><div class="gantt" style="min-width:${300+W}px">
+  <div class="ghead"><div class="gl">${clientOnly?"Client plan":"Task"}</div><div class="weeks" style="width:${W}px">${wk}</div></div>`;
+  rows.forEach(o=>{
+    if(o.hdr){h+=`<div class="grow ${o.hdr==="S"?"sec":"subsec"}"><div class="gl">${o.hdr==="U"?"&nbsp;&nbsp;&nbsp;":""}${esc(o.t)}</div><div class="track" style="width:${W}px"></div></div>`;return;}
+    const {r,x}=o;const left=(x.start-s0)*PX,wd=(x.end-x.start+1)*PX;
+    const col=r.owner==="Delivery team"?"var(--teal)":r.owner==="Client"?"var(--slate)":"var(--grey)";
+    h+=`<div class="grow"><div class="gl" title="${esc(r.task)}">${r.id}. ${esc(r.task)}</div><div class="track" style="width:${W}px">${vl}${tl}<div class="bar${r.ms?" ms":""}" style="left:${left}px;width:${Math.max(wd,4)}px;background:${col}" title="${esc(r.task)}: ${fmt(x.start)} to ${fmt(x.end)}"></div></div></div>`;
+  });
+  h+=`</div></div>`;
+  if(clientOnly){
+    h+=`<div class="scroll"><table class="plan" style="min-width:640px"><thead><tr><th style="text-align:left">Task</th><th>Owner</th><th>Start</th><th>End</th><th>Status</th></tr></thead><tbody>`;
+    rows.forEach(o=>{ if(o.hdr){h+=`<tr class="${o.hdr==="S"?"sec":"subsec"}"><td colspan="5">${esc(o.t)}</td></tr>`;return;}
+      h+=`<tr><td class="task">${esc(o.r.task)}</td><td><span class="own"><span class="dot ${ownClass(o.r.owner)}"></span>${esc(o.r.owner)}</span></td><td class="date">${fmt(o.x.start)}</td><td class="date">${fmt(o.x.end)}</td><td>${esc(o.r.status)}</td></tr>`;});
+    h+=`</tbody></table></div><textarea class="copybox" id="copyOut" hidden readonly aria-label="Client table text"></textarea>`;
+  }
+  $("panel").innerHTML=h;
+  if(clientOnly){$("copyBtn").onclick=()=>{
+    const lines=["Task\tOwner\tStart\tEnd\tStatus"];
+    rows.forEach(o=>{if(o.hdr)lines.push(o.t.toUpperCase());else lines.push([o.r.task,o.r.owner,fmt(o.x.start),fmt(o.x.end),o.r.status].join("\t"));});
+    const txt=lines.join("\n");const box=$("copyOut");box.value=txt;
+    if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(txt).then(()=>{box.hidden=true;toast("Copied. Paste into Excel, email or PowerPoint.");},()=>{box.hidden=false;box.select();toast("Select the text below and copy it");});}
+    else{box.hidden=false;box.select();toast("Select the text below and copy it");}
+  };}
+}
+function renderAll(){
+  const C=compute();renderTimeline(C);renderDC(C);
+  document.querySelectorAll(".tab").forEach(t=>t.setAttribute("aria-selected",t.dataset.v===S.view));
+  if(S.view==="plan")planView(C);else ganttView(C,S.view==="client");
+}
+document.querySelectorAll(".tab").forEach(t=>t.onclick=()=>{S.view=t.dataset.v;save();renderAll();});
+$("pName").addEventListener("input",e=>{S.name=e.target.value;save();$("title").textContent=S.name||"Assessment Project Planner";});
+$("pStart").addEventListener("change",e=>{if(e.target.value){S.start=e.target.value;save();renderAll();}});
+$("pTarget").addEventListener("change",e=>{S.target=e.target.value;save();renderAll();});
+$("dcStart").addEventListener("change",e=>{const r=dcRow();if(r){r.fixed=e.target.value;save();renderAll();}});
+$("dcDays").addEventListener("change",e=>{const r=dcRow();if(r&&+e.target.value>0){r.tat=+e.target.value;save();renderAll();}});
+$("hol").addEventListener("change",e=>{S.hol=e.target.value;save();renderSetup();renderAll();});
+$("resetBtn").onclick=function(){
+  if(this.dataset.armed){S=fresh();save();renderSetup();renderAll();this.textContent="Reset to template";delete this.dataset.armed;toast("Reset to the standard template");}
+  else{this.dataset.armed=1;this.textContent="Press again to reset";setTimeout(()=>{this.textContent="Reset to template";delete this.dataset.armed;},3000);}
+};
+// ---- Excel export
+/*XL_START*/
+function buildWorkbook(ExcelJS,C){
+  const F="Arial";
+  const COL={teal:"FF2F6F62",slate:"FFB0743C",grey:"FF9AA3AD",head:"FF22313A",band:"FF3C4A52",sub:"FFDDE4E0",tint:"FFEAF3F0",red:"FFC8102E",redT:"FFFBE3E6",off:"FFA0A8AB"};
+  const fillOf=c=>({type:"pattern",pattern:"solid",fgColor:{argb:c}});
+  const thin={style:"thin",color:{argb:"FFCDDBDE"}};const B={top:thin,left:thin,bottom:thin,right:thin};
+  const ser=n=>n==null?null:n+25569;
+  const wb=new ExcelJS.Workbook();wb.creator="Moina Shaik";wb.lastModifiedBy="Moina Shaik";wb.created=new Date();
+  const on=sections(C);
+  const s0=C.start-((new Date(C.start*DAY).getUTCDay()+6)%7);const weeks=Math.ceil((C.revEnd-s0+1)/7)+1;
+  const ownCol=o=>o==="Delivery team"?COL.teal:o==="Client"?COL.slate:COL.grey;
+  function sheet(name,cols,rowsSel,client){
+    const ws=wb.addWorksheet(name,{views:[{state:"frozen",xSplit:client?1:2,ySplit:6,showGridLines:false}]});
+    const nC=cols.length;
+    ws.getCell(1,1).value=(S.name||"Project")+" - Project Plan"+(client?"":" (internal)");
+    ws.getCell(1,1).font={name:F,size:14,bold:true,color:{argb:"FFFFFFFF"}};
+    for(let c=1;c<=nC;c++)ws.getCell(1,c).fill=fillOf(COL.head);
+    const info=[["Start date",ser(C.start)],["Planned finish",ser(C.revEnd)]];
+    if(!client){info.push(["Client target",ser(toN(S.target))],["Scope",SCOPE.filter(([k])=>k!=="DCFMT"&&S.scope[k]==="Y").map(([k,l])=>k==="DC"?l+" ("+S.scope.DCFMT+")":l).join(", ")]);}
+    info.forEach(([k,v],i)=>{const r=2+Math.floor(i/2),c=1+(i%2)*3;
+      ws.getCell(r,c).value=k;ws.getCell(r,c).font={name:F,size:10,bold:true,color:{argb:COL.head}};
+      const cell=ws.getCell(r,c+1);cell.value=v;cell.font={name:F,size:10};if(typeof v==="number")cell.numFmt="dd-mmm-yy";});
+    const H=6;
+    cols.forEach((c,i)=>{const cell=ws.getCell(H,i+1);cell.value=c.h;cell.font={name:F,size:10,bold:true,color:{argb:"FFFFFFFF"}};cell.fill=fillOf(c.grp?COL.teal:COL.head);cell.alignment={horizontal:"center",vertical:"middle",wrapText:true};cell.border=B;ws.getColumn(i+1).width=c.w;});
+    for(let k=0;k<weeks;k++){const cell=ws.getCell(H,nC+1+k);cell.value=s0+7*k+25569;cell.numFmt="dd-mmm";cell.font={name:F,size:8,bold:true,color:{argb:"FFFFFFFF"}};cell.fill=fillOf(COL.head);cell.alignment={textRotation:90,horizontal:"center"};ws.getColumn(nC+1+k).width=3.2;
+      const w=ws.getCell(H-1,nC+1+k);w.value="W"+(k+1);w.font={name:F,size:7,color:{argb:"FF5D6D78"}};w.alignment={horizontal:"center"};}
+    ws.getRow(H).height=42;
+    let r=H+1;
+    S.rows.forEach((row,i)=>{
+      if(!row.id){
+        if(client&&!(on[i].inc>0&&on[i].cli>0))return;
+        const cell=ws.getCell(r,1);cell.value=(row.k==="U"?"   ":"")+row.t+(!client&&on[i].inc===0?" (not in scope)":"");
+        for(let c=1;c<=nC+weeks;c++){const x=ws.getCell(r,c);x.fill=fillOf(row.k==="S"?COL.band:COL.sub);}
+        cell.font={name:F,size:10,bold:true,color:{argb:row.k==="S"?"FFFFFFFF":"FF262836"}};r++;return;}
+      const x=C.R[row.id];
+      if(client&&!(x.inc==="Y"&&row.cv))return;
+      const vals=cols.map(c=>c.v(row,x));
+      vals.forEach((v,ci)=>{const cell=ws.getCell(r,ci+1);cell.value=v;cell.border=B;
+        cell.font={name:F,size:10,bold:!!(row.ms&&cols[ci].h==="Task"),italic:x.inc==="N",color:{argb:x.inc==="N"?COL.off:"FF262836"}};
+        cell.alignment={vertical:"middle",wrapText:cols[ci].wrap||false,horizontal:cols[ci].c?"center":"left"};
+        if(cols[ci].date&&v!=null)cell.numFmt="dd-mmm-yy";
+        if(cols[ci].h==="Days reduced"&&v)cell.font={name:F,size:10,bold:true,color:{argb:COL.red}};});
+      if(x.start!=null){for(let k=0;k<weeks;k++){const ws0=s0+7*k;if(x.start<=ws0+6&&x.end>=ws0){ws.getCell(r,nC+1+k).fill=fillOf(ownCol(row.owner));}}}
+      r++;});
+    ws.autoFilter={from:{row:H,column:1},to:{row:r-1,column:nC}};
+    return ws;
+  }
+  const yn=v=>v?"Yes":"No";
+  const internal=[
+    {h:"ID",w:5,c:1,v:r=>r.id},{h:"Task",w:46,wrap:1,v:r=>r.task},{h:"Owner",w:12,v:r=>r.owner},
+    {h:"Start",w:11,c:1,date:1,v:(r,x)=>ser(x.start)},{h:"End",w:11,c:1,date:1,v:(r,x)=>ser(x.end)},{h:"TAT",w:6,c:1,v:r=>+r.tat},
+    {h:"Status",w:12,v:r=>r.status},{h:"Remarks",w:30,wrap:1,v:r=>r.rem||null},{h:"Client view",w:8,c:1,v:r=>yn(r.cv)},
+    {h:"Include",w:8,c:1,grp:1,v:(r,x)=>x.inc+(r.inc?" (manual)":"")},{h:"Reduced TAT",w:9,c:1,grp:1,v:r=>r.red===""||r.red==null?null:+r.red},
+    {h:"Fixed date",w:11,c:1,grp:1,date:1,v:r=>ser(toN(r.fixed))},{h:"Buffer days",w:8,c:1,grp:1,v:r=>r.buf===""||r.buf==null?null:+r.buf},
+    {h:"Dependency 1",w:12,c:1,grp:1,v:r=>r.deps[0]??null},{h:"Dependency 2",w:12,c:1,grp:1,v:r=>r.deps[1]??null},
+    {h:"Days reduced",w:9,c:1,v:(r,x)=>x.cut||null},{h:"Tag",w:11,c:1,v:r=>r.tag}];
+  const client=[
+    {h:"Task",w:46,wrap:1,v:r=>r.task},{h:"Owner",w:12,v:r=>r.owner},
+    {h:"Start",w:11,c:1,date:1,v:(r,x)=>ser(x.start)},{h:"End",w:11,c:1,date:1,v:(r,x)=>ser(x.end)},{h:"TAT",w:6,c:1,v:(r,x)=>(r.red!==""&&r.red!=null)?+r.red:+r.tat},
+    {h:"Status",w:12,v:r=>r.status},{h:"Remarks",w:30,wrap:1,v:r=>r.ms?"Milestone":(r.rem&&!/^Placeholder|^Ends one week/.test(r.rem)?r.rem:null)}];
+  sheet("Internal view",internal,null,false);
+  sheet("Client view",client,null,true);
+  return wb;
+}
+/*XL_END*/
+function loadExcelJS(){return new Promise((res,rej)=>{if(window.ExcelJS)return res(window.ExcelJS);const sc=document.createElement("script");sc.src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js";sc.onload=()=>res(window.ExcelJS);sc.onerror=()=>rej(new Error("load"));document.head.appendChild(sc);});}
+$("xlBtn").onclick=async()=>{
+  const b=$("xlBtn");b.disabled=true;b.textContent="Preparing...";
+  try{const X=await loadExcelJS();const wb=buildWorkbook(X,compute());const buf=await wb.xlsx.writeBuffer();
+    const fn=((S.name||"Project").replace(/[\\/:*?"<>|]/g,"").trim()||"Project")+" Plan.xlsx";
+    const url=URL.createObjectURL(new Blob([buf],{type:"application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"}));
+    const a=document.createElement("a");a.href=url;a.download=fn;document.body.appendChild(a);a.click();
+    setTimeout(()=>{URL.revokeObjectURL(url);a.remove();},1500);toast("Excel downloaded: Internal view and Client view");}
+  catch(e){toast("Could not create the Excel file. Check your connection and try again.");}
+  finally{b.disabled=false;b.textContent="Download Excel";}
+};
+renderSetup();renderAll();
+</script>
+
+</body>
+</html>
